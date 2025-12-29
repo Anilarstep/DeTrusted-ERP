@@ -1,75 +1,88 @@
 import streamlit as st
 import hmac
 
+# 1. Page Configuration
 st.set_page_config(page_title="DE-TRUSTED PAINT ERP", layout="wide")
 
+# 2. Security & Role Access Logic
+if "password_correct" not in st.session_state:
+    st.session_state["password_correct"] = False
+
 def check_password():
-    """Returns True if the user had the correct password."""
     def password_entered():
-        # Passwords for each role
-credentials = {"SUPERVISOR": "Admin@2025", "STAFF": "Paint@Staff"}
-# This is where you set your passwords
-      # The opening bracket { starts the list
+        # Cleanly formatted credentials for Role Access
         credentials = {
-            "SUPERVISOR": "Admin@2025",
+            "SUPERVISOR": "Admin@2025", 
             "STAFF": "Paint@Staff"
         }
-        # The closing bracket } ends the list
-        entered_role = st.session_state["role_choice"]
-        entered_pass = st.session_state["password"]
         
-        if hmac.compare_digest(entered_pass, credentials.get(entered_role, "")):
+        if hmac.compare_digest(st.session_state["pass_input"], credentials.get(st.session_state["role_input"], "")):
             st.session_state["password_correct"] = True
-            st.session_state["user_role"] = entered_role
-            del st.session_state["password"]  # Remove password from memory
+            st.session_state["user_role"] = st.session_state["role_input"]
+            st.rerun()
         else:
-            st.session_state["password_correct"] = False
+            st.error("❌ Invalid Password")
 
-    if st.session_state.get("password_correct", False):
-        return True
+    if not st.session_state["password_correct"]:
+        st.title("🔐 DE-TRUSTED ERP LOGIN")
+        st.selectbox("Select Role", ["STAFF", "SUPERVISOR"], key="role_input")
+        st.text_input("Password", type="password", key="pass_input", on_change=password_entered)
+        st.info("Please enter your credentials to access the GHC financial modules.")
+        return False
+    return True
 
-    # Login UI
-    st.title("🔐 DE-TRUSTED ERP LOGIN")
-    st.selectbox("Select Your Role", ["STAFF", "SUPERVISOR"], key="role_choice")
-    st.text_input("Enter Password", type="password", on_change=password_entered, key="password")
-    
-    if "password_correct" in st.session_state:
-        st.error("😕 Password incorrect. Please try again.")
-    return False
-
+# 3. Main Dashboard Interface
 if check_password():
-    # If password is correct, show the Hub
-    st.title("🎨 DE-TRUSTED PAINT ERP - EXECUTIVE HUB")
-    role = st.session_state["user_role"]
-    st.info(f"Currency: GHC | Access Level: {role}")
-
-    if st.sidebar.button("Log Out"):
+    st.title("🎨 DE-TRUSTED PAINT ERP — EXECUTIVE HUB")
+    st.sidebar.write(f"Logged in as: **{st.session_state['user_role']}**")
+    
+    if st.sidebar.button("🔒 Log Out"):
         st.session_state["password_correct"] = False
         st.rerun()
 
-    if role == "SUPERVISOR":
-        st.success("👑 EXECUTIVE ACCESS: Total System Control")
-        modules = [
-            ("📊 Administration & HR", "Manage staff and GHC salaries."),
-            ("🏗️ Production Desk", "Log paint batches and recipes."),
-            ("💰 Sales & Marketing", "Record sales and customer data."),
-            ("🏦 Finance & Accounts", "View P&L and GHC tax statements."),
-            ("🚚 Logistics & Fleet", "Track delivery trucks and fuel."),
-            ("📦 Warehousing", "Monitor raw materials and stock.")
-        ]
-    else:
-        st.warning("👤 STAFF ACCESS: View assigned tasks only.")
-        modules = [
-            ("🏗️ Production Desk", "Log your daily batches."),
-            ("💰 Sales & Marketing", "Process new GHC invoices."),
-            ("📦 Warehousing", "Update stock levels.")
-        ]
+    # Define the grid for the 6 modules
+    col1, col2 = st.columns(2)
 
-    # Grid Display
-    cols = st.columns(3)
-    for i, (title, desc) in enumerate(modules):
-        with cols[i % 3]:
-            st.subheader(title)
-            st.write(desc)
-            if st.button(f"Enter {title}", key=f"btn_{i}"):
-                st.info(f"Opening {title}...")
+    with col1:
+        # Module 1: Administration & HR
+        with st.expander("📊 Administration & HR", expanded=True):
+            st.write("Manage staff payroll and records in **GHC**.")
+            if st.button("Enter 📊 Administration"):
+                st.info("Opening HR Module...")
+
+        # Module 2: Production Desk
+        with st.expander("🏗️ Production Desk", expanded=True):
+            st.write("Log paint batches and chemical recipes.")
+            if st.button("Enter 🏗️ Production"):
+                st.info("Opening Production...")
+
+        # Module 3: Finance & Accounts (Restricted to SUPERVISOR)
+        if st.session_state["user_role"] == "SUPERVISOR":
+            with st.expander("💰 Finance & Accounts", expanded=True):
+                st.write("View P&L and GHC tax statements.")
+                if st.button("Enter 💰 Finance"):
+                    st.info("Opening Finance...")
+        else:
+            st.warning("💰 Finance: Access Restricted to Supervisor")
+
+    with col2:
+        # Module 4: Sales & Marketing
+        with st.expander("💰 Sales & Marketing", expanded=True):
+            st.write("Record sales and customer data.")
+            if st.button("Enter 💰 Sales"):
+                st.info("Opening Sales...")
+
+        # Module 5: Warehousing & Inventory
+        with st.expander("📦 Warehousing", expanded=True):
+            st.write("Monitor raw materials and stock levels.")
+            if st.button("Enter 📦 Warehousing"):
+                st.info("Opening Warehousing...")
+
+        # Module 6: Logistics & Fleet (Restricted to SUPERVISOR)
+        if st.session_state["user_role"] == "SUPERVISOR":
+            with st.expander("🚚 Logistics & Fleet", expanded=True):
+                st.write("Track delivery trucks and fuel consumption.")
+                if st.button("Enter 🚚 Logistics"):
+                    st.info("Opening Logistics...")
+        else:
+            st.warning("🚚 Logistics: Access Restricted to Supervisor")
