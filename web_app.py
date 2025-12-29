@@ -1,25 +1,22 @@
 import streamlit as st
 import hmac
 
-# 1. Page Configuration
+# --- 1. GLOBAL SETTINGS ---
 st.set_page_config(page_title="DE-TRUSTED PAINT ERP", layout="wide")
 
-# 2. Security & Role Access Logic
+# Initialize Security State
 if "password_correct" not in st.session_state:
     st.session_state["password_correct"] = False
 
+# --- 2. SECURITY SYSTEM ---
 def check_password():
     def password_entered():
-        # Cleanly formatted credentials for Role Access
-        credentials = {
-            "SUPERVISOR": "Admin@2025", 
-            "STAFF": "Paint@Staff"
-        }
-        
+        # Updated Credentials
+        credentials = {"SUPERVISOR": "Admin@2025", "STAFF": "Paint@Staff"}
         if hmac.compare_digest(st.session_state["pass_input"], credentials.get(st.session_state["role_input"], "")):
             st.session_state["password_correct"] = True
             st.session_state["user_role"] = st.session_state["role_input"]
-            st.rerun()
+            st.rerun() # Forces the dashboard to activate immediately
         else:
             st.error("❌ Invalid Password")
 
@@ -27,62 +24,61 @@ def check_password():
         st.title("🔐 DE-TRUSTED ERP LOGIN")
         st.selectbox("Select Role", ["STAFF", "SUPERVISOR"], key="role_input")
         st.text_input("Password", type="password", key="pass_input", on_change=password_entered)
-        st.info("Please enter your credentials to access the GHC financial modules.")
         return False
     return True
 
-# 3. Main Dashboard Interface
+# --- 3. MAIN INTERFACE ---
 if check_password():
-    st.title("🎨 DE-TRUSTED PAINT ERP — EXECUTIVE HUB")
-    st.sidebar.write(f"Logged in as: **{st.session_state['user_role']}**")
+    # Sidebar Navigation
+    st.sidebar.title(f"👤 {st.session_state['user_role']} MENU")
+    
+    # Restricted Menu Logic
+    if st.session_state["user_role"] == "SUPERVISOR":
+        menu = ["🏠 Home Hub", "📊 Admin & HR", "🏗️ Production", "💰 Sales", "💸 Finance", "🚚 Logistics", "📦 Warehousing"]
+    else:
+        menu = ["🏠 Home Hub", "🏗️ Production", "💰 Sales", "📦 Warehousing"]
+    
+    choice = st.sidebar.radio("Navigate:", menu)
     
     if st.sidebar.button("🔒 Log Out"):
         st.session_state["password_correct"] = False
         st.rerun()
 
-    # Define the grid for the 6 modules
-    col1, col2 = st.columns(2)
+    # --- 4. DEPARTMENT MODULES ---
+    if choice == "🏠 Home Hub":
+        st.title("🎨 DE-TRUSTED PAINT ERP — EXECUTIVE HUB")
+        st.write(f"Welcome to the 2025 Command Center. All records are in **GHC**.")
+        st.info("Select a module from the sidebar to begin.")
 
-    with col1:
-        # Module 1: Administration & HR
-        with st.expander("📊 Administration & HR", expanded=True):
-            st.write("Manage staff payroll and records in **GHC**.")
-            if st.button("Enter 📊 Administration"):
-                st.info("Opening HR Module...")
+    elif choice == "📊 Admin & HR":
+        st.title("📊 Administration & HR")
+        st.write("Manage staff and payroll in **GHC**.")
+        st.text_input("Staff Name")
+        st.number_input("Salary (GHC)", min_value=0.0)
 
-        # Module 2: Production Desk
-        with st.expander("🏗️ Production Desk", expanded=True):
-            st.write("Log paint batches and chemical recipes.")
-            if st.button("Enter 🏗️ Production"):
-                st.info("Opening Production...")
+    elif choice == "🏗️ Production":
+        st.title("🏗️ Production Desk")
+        st.selectbox("Select Paint Category", ["Oil Paint", "Water Base", "Auto Paint"])
+        st.number_input("Batch Size (Litres)", step=1)
 
-        # Module 3: Finance & Accounts (Restricted to SUPERVISOR)
-        if st.session_state["user_role"] == "SUPERVISOR":
-            with st.expander("💰 Finance & Accounts", expanded=True):
-                st.write("View P&L and GHC tax statements.")
-                if st.button("Enter 💰 Finance"):
-                    st.info("Opening Finance...")
-        else:
-            st.warning("💰 Finance: Access Restricted to Supervisor")
+    elif choice == "💰 Sales":
+        st.title("💰 Sales & Marketing")
+        st.write("Generate GHC Invoices.")
+        st.text_input("Customer Name")
+        st.number_input("Total Sale (GHC)")
 
-    with col2:
-        # Module 4: Sales & Marketing
-        with st.expander("💰 Sales & Marketing", expanded=True):
-            st.write("Record sales and customer data.")
-            if st.button("Enter 💰 Sales"):
-                st.info("Opening Sales...")
+    elif choice == "💸 Finance":
+        # Supervisor Only
+        st.title("💸 Finance & Accounts")
+        st.metric("Total Revenue", "GHC 0.00")
+        st.metric("Net Profit", "GHC 0.00")
 
-        # Module 5: Warehousing & Inventory
-        with st.expander("📦 Warehousing", expanded=True):
-            st.write("Monitor raw materials and stock levels.")
-            if st.button("Enter 📦 Warehousing"):
-                st.info("Opening Warehousing...")
+    elif choice == "🚚 Logistics":
+        # Supervisor Only
+        st.title("🚚 Logistics & Fleet")
+        st.text_input("Vehicle Number")
+        st.number_input("Fuel Cost (GHC)")
 
-        # Module 6: Logistics & Fleet (Restricted to SUPERVISOR)
-        if st.session_state["user_role"] == "SUPERVISOR":
-            with st.expander("🚚 Logistics & Fleet", expanded=True):
-                st.write("Track delivery trucks and fuel consumption.")
-                if st.button("Enter 🚚 Logistics"):
-                    st.info("Opening Logistics...")
-        else:
-            st.warning("🚚 Logistics: Access Restricted to Supervisor")
+    elif choice == "📦 Warehousing":
+        st.title("📦 Inventory Control")
+        st.number_input("Raw Material Stock (Kgs)")
